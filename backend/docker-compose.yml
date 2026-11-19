@@ -1,0 +1,40 @@
+# Production-style stack: PostgreSQL with TimescaleDB + the backend (API, Socket.IO, MQTT broker).
+#   docker compose up --build
+# Set real secrets in a .env file next to this file first (see .env.example).
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_DB: smart_water
+      POSTGRES_USER: swm
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-swm-dev-password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U swm -d smart_water"]
+      interval: 5s
+      retries: 20
+
+  backend:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: postgresql://swm:${DB_PASSWORD:-swm-dev-password}@db:5432/smart_water
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      MQTT_SERVICE_PASSWORD: ${MQTT_SERVICE_PASSWORD:?set MQTT_SERVICE_PASSWORD in .env}
+      SEED_DEMO: ${SEED_DEMO:-false}
+      EMBEDDED_BROKER: "true"
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      MQTT_TLS_KEY: ${MQTT_TLS_KEY:-}
+      MQTT_TLS_CERT: ${MQTT_TLS_CERT:-}
+    ports:
+      - "3000:3000"
+      - "1883:1883"
+      - "8883:8883"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

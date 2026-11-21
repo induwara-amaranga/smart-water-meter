@@ -15,7 +15,9 @@ final repositoryProvider = Provider<WaterRepository>(
   (ref) => AppConfig.useMock ? MockWaterRepository() : ApiWaterRepository(),
 );
 
-final provisioningProvider = Provider<ProvisioningService>((ref) => MockProvisioningService());
+final provisioningProvider = Provider<ProvisioningService>(
+  (ref) => AppConfig.useMock ? MockProvisioningService() : CloudCheckProvisioningService(ref.read(repositoryProvider)),
+);
 
 // ---------------------------------------------------------------------- auth
 
@@ -115,18 +117,20 @@ class ValveController extends Notifier<ValveUiState> {
   void set({required bool open}) {
     if (state.busy) return;
     _sub?.cancel();
-    _sub = ref.read(repositoryProvider).setValve(meterId, open: open).listen(
-      (s) => state = ValveUiState(s),
-      onError: (Object e) {
-        state = ValveUiState(open ? ValveState.closed : ValveState.open, error: e.toString());
-      },
-      onDone: () => ref.invalidate(summaryProvider(meterId)),
-    );
+    _sub = ref
+        .read(repositoryProvider)
+        .setValve(meterId, open: open)
+        .listen(
+          (s) => state = ValveUiState(s),
+          onError: (Object e) {
+            state = ValveUiState(open ? ValveState.closed : ValveState.open, error: e.toString());
+          },
+          onDone: () => ref.invalidate(summaryProvider(meterId)),
+        );
   }
 }
 
-final valveProvider =
-    NotifierProvider.autoDispose.family<ValveController, ValveUiState, String>(ValveController.new);
+final valveProvider = NotifierProvider.autoDispose.family<ValveController, ValveUiState, String>(ValveController.new);
 
 final usageProvider = FutureProvider.autoDispose.family<UsageSeries, (String, UsageRange)>(
   (ref, args) => ref.watch(repositoryProvider).getUsage(args.$1, args.$2),
@@ -164,6 +168,4 @@ final settingsProvider = FutureProvider.family<AccountSettings, String>(
   (ref, accountId) => ref.watch(repositoryProvider).getSettings(accountId),
 );
 
-final ticketsProvider = FutureProvider.autoDispose<List<Ticket>>(
-  (ref) => ref.watch(repositoryProvider).getTickets(),
-);
+final ticketsProvider = FutureProvider.autoDispose<List<Ticket>>((ref) => ref.watch(repositoryProvider).getTickets());

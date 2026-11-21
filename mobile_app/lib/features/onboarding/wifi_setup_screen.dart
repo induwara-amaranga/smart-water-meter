@@ -49,15 +49,17 @@ class _WifiSetupScreenState extends ConsumerState<WifiSetupScreen> {
         .provision(meterId: widget.account.meterId, ssid: _ssid.text, password: _password.text)
         .listen(
           (s) => setState(() => _step = s),
-          onError: (Object e) => setState(() {
-            _error = e is StateError ? e.message : e.toString();
-            _step = null;
-          }),
+          onError:
+              (Object e) => setState(() {
+                _error = e is StateError ? e.message : e.toString();
+                _step = null;
+              }),
         );
   }
 
   @override
   Widget build(BuildContext context) {
+    final service = ref.watch(provisioningProvider);
     final done = _step == ProvisionStep.done;
     return Scaffold(
       appBar: AppBar(title: const Text('Connect your meter')),
@@ -78,57 +80,65 @@ class _WifiSetupScreenState extends ConsumerState<WifiSetupScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          const AppCard(
+          AppCard(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.lightbulb_outline_rounded, color: AppColors.warning),
-                SizedBox(width: 12),
+                const Icon(Icons.lightbulb_outline_rounded, color: AppColors.warning),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Hold the SETUP button on the meter for 5 seconds until the light blinks blue. '
-                    'Keep your phone within a few metres of the meter. '
-                    'The meter works with 2.4 GHz Wi-Fi only.',
-                    style: TextStyle(height: 1.4),
+                    service.needsCredentials
+                        ? 'Hold the SETUP button on the meter for 5 seconds until the light blinks blue. '
+                            'Keep your phone within a few metres of the meter. '
+                            'The meter works with 2.4 GHz Wi-Fi only.'
+                        : 'This meter joins Wi-Fi with the network details set in its firmware. '
+                            'Power it on, then tap "Check connection". When the meter screen shows ONLINE, '
+                            'the app will confirm it here. The meter works with 2.4 GHz Wi-Fi only.',
+                    style: const TextStyle(height: 1.4),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 20),
-          TextField(
-            controller: _ssid,
-            enabled: !_running && !done,
-            decoration: const InputDecoration(labelText: 'Wi-Fi network name', prefixIcon: Icon(Icons.wifi)),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _password,
-            enabled: !_running && !done,
-            obscureText: _obscure,
-            decoration: InputDecoration(
-              labelText: 'Wi-Fi password',
-              prefixIcon: const Icon(Icons.lock_outline),
-              suffixIcon: IconButton(
-                icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                onPressed: () => setState(() => _obscure = !_obscure),
+          if (service.needsCredentials) ...[
+            TextField(
+              controller: _ssid,
+              enabled: !_running && !done,
+              decoration: const InputDecoration(labelText: 'Wi-Fi network name', prefixIcon: Icon(Icons.wifi)),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _password,
+              enabled: !_running && !done,
+              obscureText: _obscure,
+              decoration: InputDecoration(
+                labelText: 'Wi-Fi password',
+                prefixIcon: const Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
+          ],
           if (_step != null || _error != null) ...[
             AppCard(
               child: Column(
                 children: [
-                  for (final s in ProvisionStep.values) _StepRow(step: s, current: _step),
+                  for (final s in service.steps) _StepRow(step: s, current: _step),
                   if (_error != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Row(children: [
-                        const Icon(Icons.error_outline, color: AppColors.danger),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.danger))),
-                      ]),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error_outline, color: AppColors.danger),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.danger))),
+                        ],
+                      ),
                     ),
                 ],
               ),
@@ -140,14 +150,13 @@ class _WifiSetupScreenState extends ConsumerState<WifiSetupScreen> {
           else
             FilledButton(
               onPressed: _running ? null : _start,
-              child: Text(_error != null ? 'Try again' : 'Connect meter'),
+              child: Text(
+                _error != null ? 'Try again' : (service.needsCredentials ? 'Connect meter' : 'Check connection'),
+              ),
             ),
           const SizedBox(height: 8),
           if (!done)
-            TextButton(
-              onPressed: _running ? null : () => context.go('/home'),
-              child: const Text('Do this later'),
-            ),
+            TextButton(onPressed: _running ? null : () => context.go('/home'), child: const Text('Do this later')),
         ],
       ),
     );
@@ -172,9 +181,10 @@ class _StepRow extends StatelessWidget {
           SizedBox(
             width: 24,
             height: 24,
-            child: complete
-                ? const Icon(Icons.check_circle_rounded, color: AppColors.success)
-                : active
+            child:
+                complete
+                    ? const Icon(Icons.check_circle_rounded, color: AppColors.success)
+                    : active
                     ? const Padding(padding: EdgeInsets.all(3), child: CircularProgressIndicator(strokeWidth: 2.5))
                     : const Icon(Icons.radio_button_unchecked, color: AppColors.border),
           ),

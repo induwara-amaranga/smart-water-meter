@@ -1,0 +1,5 @@
+{
+  "USE_MOCK": "false",
+  "API_BASE_URL": "http://10.227.86.167:3000/api/v1",
+  "SOCKET_URL": "http://10.227.86.167:3000"
+}

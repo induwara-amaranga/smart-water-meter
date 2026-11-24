@@ -27,6 +27,12 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: admin-web/package-lock.json
+      - name: Check BACKEND_URL on main
+        if: github.ref == 'refs/heads/main'
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+        run: |
+          [ -n "$BACKEND_URL" ] || { echo "::error::Variable BACKEND_URL is not set (Settings → Secrets and variables → Actions → Variables). Without it the deployed admin web can't reach the API."; exit 1; }
       - run: npm ci
       # Type-checks, then bundles with the hosted backend's URL baked in.
       - run: npm run build

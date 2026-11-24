@@ -38,6 +38,9 @@ export interface RunningServer {
 export async function startServer(opts: StartOptions = {}): Promise<RunningServer> {
   const config = loadConfig(opts.config);
   const log = createLogger(config.LOG_LEVEL, config.NODE_ENV === 'development');
+  if (config.NODE_ENV === 'production' && config.ALLOW_DEV_OTP_IN_PRODUCTION && config.DEV_OTP) {
+    log.warn('auth: DEV_OTP is accepted for every customer login (ALLOW_DEV_OTP_IN_PRODUCTION=true). Demo use only.');
+  }
 
   const db = await openDb(config.DATABASE_URL, config.PGLITE_DIR, config.DATABASE_SSL);
   log.info({ db: db.kind }, 'db: connected');

@@ -21,6 +21,8 @@ const schema = z.object({
   ACCESS_TOKEN_TTL_MIN: z.coerce.number().default(15),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(30),
   DEV_OTP: z.string().optional().default(''),
+  /** Accept DEV_OTP in production too. Only for demo servers with no SMS/email provider. */
+  ALLOW_DEV_OTP_IN_PRODUCTION: bool,
 
   EMBEDDED_BROKER: bool,
   MQTT_PORT: z.coerce.number().default(1883),

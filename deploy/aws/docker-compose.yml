@@ -42,6 +42,9 @@ services:
       SEED_DEMO: ${SEED_DEMO:-false}
       EMBEDDED_BROKER: "true"
       CORS_ORIGINS: ${CORS_ORIGINS:-}
+      # Demo only: lets customers sign in with DEV_OTP until an SMS/email provider is added.
+      DEV_OTP: ${DEV_OTP:-}
+      ALLOW_DEV_OTP_IN_PRODUCTION: ${ALLOW_DEV_OTP_IN_PRODUCTION:-false}
     ports:
       - "1883:1883" # MQTT for the meters. The API (3000) is reached only through Caddy.
 

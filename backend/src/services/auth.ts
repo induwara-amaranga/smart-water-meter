@@ -119,7 +119,8 @@ export async function requestOtp(ctx: AppContext, identifier: string) {
 
 export async function verifyOtp(ctx: AppContext, identifier: string, code: string) {
   const id = normalizeIdentifier(identifier);
-  const devOk = ctx.config.NODE_ENV !== 'production' && !!ctx.config.DEV_OTP && safeEqual(code, ctx.config.DEV_OTP);
+  const devAllowed = ctx.config.NODE_ENV !== 'production' || ctx.config.ALLOW_DEV_OTP_IN_PRODUCTION;
+  const devOk = devAllowed && !!ctx.config.DEV_OTP && safeEqual(code, ctx.config.DEV_OTP);
   if (!devOk) {
     const row = await ctx.db.one<{ code_hash: string; expires_at: Date; attempts: number }>(
       `update otp_codes set attempts = attempts + 1 where identifier = $1 returning *`,

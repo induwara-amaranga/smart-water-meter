@@ -76,6 +76,7 @@ Copy `.env.example` to `.env`. The settings that matter most:
 | `EMBEDDED_BROKER`, `MQTT_URL` | Use the built-in broker, or an external one. |
 | `MQTT_TLS_KEY`, `MQTT_TLS_CERT` | Enables the MQTT TLS listener on 8883 (use this for real meters). |
 | `DEV_OTP` | Code accepted for any customer outside production. Real codes are logged until an SMS provider is added. |
+| `ALLOW_DEV_OTP_IN_PRODUCTION` | `true` makes production accept `DEV_OTP` too. For demo servers only, since anyone who knows the code can sign in as any customer. |
 
 To use the local PostgreSQL 17 install: `createdb smart_water`, then set `DATABASE_URL=postgresql://postgres:<password>@localhost:5432/smart_water`. Tables are created on start. `docker compose up --build` runs PostgreSQL with TimescaleDB plus the backend.
 

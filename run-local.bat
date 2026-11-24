@@ -8,15 +8,39 @@ set "PORTS=1883,3000,5173"
 set "CONFIG_H=firmware\smart_water_meter\config.h"
 set "LAN_JSON=mobile_app\env\lan.json"
 
+rem Test meter and its reporting intervals (step 4)
+set "METER_ID=SWM-000789"
+set "ADMIN_EMAIL=admin@swm.local"
+set "ADMIN_PASSWORD=Admin@123"
+rem Demo: fast updates so changes show on the dashboard/app within seconds
+set "DEMO_TELEMETRY_SEC=5"
+set "DEMO_HEARTBEAT_SEC=60"
+rem Normal: firmware defaults (telemetry 15 min, heartbeat 5 min)
+set "NORMAL_TELEMETRY_SEC=900"
+set "NORMAL_HEARTBEAT_SEC=300"
+
 echo ============================================================
 echo  Smart Water Meter - local backend + admin web
 echo ============================================================
 echo.
 
+choice /c YN /m "Is this a DEMO run (meter reports every %DEMO_TELEMETRY_SEC% s)"
+if errorlevel 2 (
+  set "MODE=NORMAL"
+  set "TELEMETRY_SEC=%NORMAL_TELEMETRY_SEC%"
+  set "HEARTBEAT_SEC=%NORMAL_HEARTBEAT_SEC%"
+) else (
+  set "MODE=DEMO"
+  set "TELEMETRY_SEC=%DEMO_TELEMETRY_SEC%"
+  set "HEARTBEAT_SEC=%DEMO_HEARTBEAT_SEC%"
+)
+echo   Mode: !MODE! - telemetry every !TELEMETRY_SEC! s, heartbeat every !HEARTBEAT_SEC! s
+echo.
+
 rem ---------------------------------------------------------------
 rem 1. IP address
 rem ---------------------------------------------------------------
-echo [1/4] Checking IP address...
+echo [1/5] Checking IP address...
 set "LAN_IP="
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq 'Up' } | Select-Object -First 1).IPv4Address.IPAddress"`) do set "LAN_IP=%%i"
 
@@ -61,7 +85,7 @@ echo.
 rem ---------------------------------------------------------------
 rem 2. Firewall
 rem ---------------------------------------------------------------
-echo [2/4] Checking Windows Firewall (TCP %PORTS%)...
+echo [2/5] Checking Windows Firewall (TCP %PORTS%)...
 for /f "usebackq delims=" %%p in (`powershell -NoProfile -Command "(Get-NetConnectionProfile | Select-Object -First 1).NetworkCategory"`) do echo   Network profile: %%p
 
 netsh advfirewall firewall show rule name=%FW_RULE% >nul 2>&1
@@ -89,7 +113,7 @@ echo.
 rem ---------------------------------------------------------------
 rem 3. Backend (API :3000 + MQTT :1883)
 rem ---------------------------------------------------------------
-echo [3/4] Starting backend...
+echo [3/5] Starting backend...
 where node >nul 2>&1 || (echo   [X] Node.js not found. Install Node 20+ from nodejs.org. & pause & exit /b 1)
 
 if not exist "backend\.env" if exist "backend\.env.example" (
@@ -125,10 +149,17 @@ echo   [OK] Backend is up.
 echo.
 
 rem ---------------------------------------------------------------
-rem 4. Admin web (Vite, exposed on the LAN with --host)
+rem 4. Reporting intervals for the test meter (demo: telemetry 5 s, heartbeat 60 s)
+rem ---------------------------------------------------------------
+echo [4/5] %MODE% mode: setting %METER_ID% to telemetry %TELEMETRY_SEC% s, heartbeat %HEARTBEAT_SEC% s...
+powershell -NoProfile -Command "try { $l = Invoke-RestMethod -Method Post -Uri http://localhost:3000/api/v1/admin/auth/login -ContentType 'application/json' -Body (@{ email = '%ADMIN_EMAIL%'; password = '%ADMIN_PASSWORD%' } | ConvertTo-Json); Invoke-RestMethod -Method Patch -Uri http://localhost:3000/api/v1/admin/meters/%METER_ID% -Headers @{ Authorization = ('Bearer ' + $l.accessToken) } -ContentType 'application/json' -Body (@{ telemetrySec = %TELEMETRY_SEC%; heartbeatSec = %HEARTBEAT_SEC% } | ConvertTo-Json) | Out-Null; Write-Host '  [OK] Meter config updated. Sent to the ESP now (or when it next connects).' } catch { Write-Host ('  [!] Could not update the meter: ' + $_.Exception.Message); exit 1 }"
+echo.
+
+rem ---------------------------------------------------------------
+rem 5. Admin web (Vite, exposed on the LAN with --host)
 rem ---------------------------------------------------------------
 :start_admin
-echo [4/4] Starting admin web (--host)...
+echo [5/5] Starting admin web (--host)...
 if not exist "admin-web\node_modules" (
   echo   Installing admin-web packages...
   pushd admin-web & call npm install & popd
@@ -147,6 +178,7 @@ echo              http://!LAN_IP!:5173   ^(other devices on the Wi-Fi^)
 echo  API       : http://!LAN_IP!:3000/api/v1
 echo  MQTT      : !LAN_IP!:1883  ^(ESP MQTT_HOST^)
 echo  Login     : admin@swm.local / Admin@123
+echo  Mode      : !MODE! - %METER_ID% reports every !TELEMETRY_SEC! s
 echo.
 echo  Close the "SWM Backend" and "SWM Admin Web" windows to stop.
 echo ============================================================

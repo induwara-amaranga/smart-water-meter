@@ -1,0 +1,68 @@
+# Production stack for one EC2 server. GitHub Actions copies this file and the
+# Caddyfile to ~/swm on the server and sets BACKEND_IMAGE in ~/swm/.env.
+#
+# ~/swm/.env (created once by hand, never committed) must contain:
+#   DOMAIN, JWT_SECRET, MQTT_SERVICE_PASSWORD, DB_PASSWORD, CORS_ORIGINS, SEED_DEMO
+
+# Rotate container logs so they can't fill the server's disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_DB: smart_water
+      POSTGRES_USER: swm
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U swm -d smart_water"]
+      interval: 5s
+      retries: 20
+
+  backend:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is set by the deploy workflow}
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://swm:${DB_PASSWORD}@db:5432/smart_water
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      MQTT_SERVICE_PASSWORD: ${MQTT_SERVICE_PASSWORD:?set MQTT_SERVICE_PASSWORD in .env}
+      SEED_DEMO: ${SEED_DEMO:-false}
+      EMBEDDED_BROKER: "true"
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+    ports:
+      - "1883:1883" # MQTT for the meters. The API (3000) is reached only through Caddy.
+
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

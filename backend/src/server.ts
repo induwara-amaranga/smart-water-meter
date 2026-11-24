@@ -39,7 +39,7 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
   const config = loadConfig(opts.config);
   const log = createLogger(config.LOG_LEVEL, config.NODE_ENV === 'development');
 
-  const db = await openDb(config.DATABASE_URL, config.PGLITE_DIR);
+  const db = await openDb(config.DATABASE_URL, config.PGLITE_DIR, config.DATABASE_SSL);
   log.info({ db: db.kind }, 'db: connected');
   const applied = await migrate(db);
   if (applied.length) log.info({ applied }, 'db: migrations applied');

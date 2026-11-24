@@ -12,6 +12,8 @@ const schema = z.object({
   LOG_LEVEL: z.string().default('info'),
 
   DATABASE_URL: z.string().optional().default(''),
+  /** Connect with TLS without verifying the certificate (Amazon RDS, Heroku Postgres). */
+  DATABASE_SSL: bool,
   PGLITE_DIR: z.string().default('./data/pglite'),
   SEED_DEMO: bool,
 

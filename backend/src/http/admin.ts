@@ -443,7 +443,7 @@ export function adminRouter(ctx: AppContext): Router {
     const b = parse(
       z.object({
         calFactor: z.number().positive().max(100).optional(),
-        telemetrySec: z.number().int().min(10).max(3600).optional(),
+        telemetrySec: z.number().int().min(5).max(3600).optional(),
         heartbeatSec: z.number().int().min(10).max(3600).optional(),
       }),
       req.body,

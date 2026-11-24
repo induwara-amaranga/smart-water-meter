@@ -1,0 +1,6 @@
+# Contains firmware/smart_water_meter/config.h (Wi-Fi password, device secret)
+firmware.zip
+
+# Secrets and local data
+.env
+**/hs_err_pid*.log

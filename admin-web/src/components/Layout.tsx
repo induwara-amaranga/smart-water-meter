@@ -32,7 +32,6 @@ export function Layout() {
     queryKey: ['valve-requests', 'AWAITING_APPROVAL'],
     queryFn: () => api<ValveRequest[]>('/valve-requests?state=AWAITING_APPROVAL'),
     enabled: can('meters.view'),
-    refetchInterval: 30_000,
   });
 
   const nav = (

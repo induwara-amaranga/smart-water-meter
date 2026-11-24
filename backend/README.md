@@ -79,6 +79,18 @@ Copy `.env.example` to `.env`. The settings that matter most:
 
 To use the local PostgreSQL 17 install: `createdb smart_water`, then set `DATABASE_URL=postgresql://postgres:<password>@localhost:5432/smart_water`. Tables are created on start. `docker compose up --build` runs PostgreSQL with TimescaleDB plus the backend.
 
+## Deploying to AWS
+
+Production runs on one EC2 server with Docker Compose (`../deploy/aws/`): PostgreSQL, this backend (API, Socket.IO, MQTT broker on 1883) and Caddy for HTTPS. GitHub Actions (`../.github/workflows/backend.yml`) tests every pull request, builds the Docker image, and on pushes to `main` pushes it to GitHub Container Registry and rolls it out over SSH. Setup steps and the required GitHub secrets are in `../docs/DEPLOYMENT.md`.
+
+The image has a Docker `HEALTHCHECK` on `/health`, so the deploy waits until the API, database and broker are all up.
+
+To drive the hosted server with simulated meters from your PC:
+
+```bash
+npm run simulate -- --url mqtt://<elastic-ip>:1883 --api https://<domain>/api/v1 --meters SWM-000789:demo-secret-789
+```
+
 ## MQTT contract (for the firmware)
 
 Prefix `swm/v1/meters/{meterId}`. Connect with **client ID `meter-{meterId}`**, **username = meter ID**, **password = device secret**. A meter can only publish to its own `up/…` topics and subscribe to its own `down/…` topics.

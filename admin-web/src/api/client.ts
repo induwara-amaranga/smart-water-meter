@@ -3,7 +3,12 @@
  * only; the refresh token is kept in sessionStorage so a page reload in the same
  * tab stays signed in, and is rotated on every refresh.
  */
-const BASE = '/api/v1/admin';
+/**
+ * Backend origin, e.g. https://swm-api.herokuapp.com. Empty in development,
+ * where Vite proxies /api and /socket.io to the local backend.
+ */
+export const API_ORIGIN = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
+const BASE = `${API_ORIGIN}/api/v1/admin`;
 const REFRESH_KEY = 'swm_admin_refresh';
 
 let accessToken: string | null = null;

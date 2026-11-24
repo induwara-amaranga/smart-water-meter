@@ -18,7 +18,7 @@ export function DisconnectionsPage() {
   const defaultTab: Tab = can('billing.view') ? 'overdue' : 'approvals';
   const tab = (params.get('tab') as Tab) || defaultTab;
 
-  const requests = useQuery({ queryKey: ['valve-requests', 'all'], queryFn: () => api<ValveRequest[]>('/valve-requests'), refetchInterval: 20_000 });
+  const requests = useQuery({ queryKey: ['valve-requests', 'all'], queryFn: () => api<ValveRequest[]>('/valve-requests') });
   const awaiting = (requests.data ?? []).filter((r) => r.state === 'AWAITING_APPROVAL');
 
   const tabs: { id: Tab; label: string; count?: number; show: boolean }[] = [

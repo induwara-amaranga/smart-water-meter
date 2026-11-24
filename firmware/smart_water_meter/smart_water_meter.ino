@@ -479,7 +479,7 @@ void applyConfig(JsonDocument& doc) {
   uint32_t telemetrySec = doc["telemetrySec"] | 0;
   uint32_t heartbeatSec = doc["heartbeatSec"] | 0;
   if (cal > 0.5f && cal < 100.0f) calibrationFactor = cal;
-  if (telemetrySec >= 10) telemetryIntervalMs = telemetrySec * 1000UL;
+  if (telemetrySec >= 5) telemetryIntervalMs = telemetrySec * 1000UL;
   if (heartbeatSec >= 10) heartbeatIntervalMs = heartbeatSec * 1000UL;
   Serial.printf("Config: calFactor=%.2f telemetry=%lus heartbeat=%lus\n", calibrationFactor,
                 telemetryIntervalMs / 1000, heartbeatIntervalMs / 1000);

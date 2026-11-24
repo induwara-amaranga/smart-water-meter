@@ -26,7 +26,7 @@ function StatTile({ icon, label, value, detail, status }: { icon: ReactNode; lab
 
 export function DashboardPage() {
   const { user, can } = useAuth();
-  const overview = useQuery({ queryKey: ['overview'], queryFn: () => api<Overview>('/stats/overview'), refetchInterval: 30_000 });
+  const overview = useQuery({ queryKey: ['overview'], queryFn: () => api<Overview>('/stats/overview') });
   const pending = useQuery({
     queryKey: ['valve-requests', 'AWAITING_APPROVAL'],
     queryFn: () => api<ValveRequest[]>('/valve-requests?state=AWAITING_APPROVAL'),

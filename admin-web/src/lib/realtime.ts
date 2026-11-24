@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { io } from 'socket.io-client';
-import { getAccessToken } from '../api/client';
+import { API_ORIGIN, getAccessToken } from '../api/client';
 import { useToast } from '../components/ui';
 
 interface ValveEvent {
@@ -22,7 +22,8 @@ export function useRealtime(enabled: boolean) {
 
   useEffect(() => {
     if (!enabled) return;
-    const socket = io({ auth: (cb) => cb({ token: getAccessToken() }), transports: ['websocket'] });
+    const opts = { auth: (cb: (data: object) => void) => cb({ token: getAccessToken() }), transports: ['websocket'] };
+    const socket = API_ORIGIN ? io(API_ORIGIN, opts) : io(opts);
 
     const refresh = () => {
       void qc.invalidateQueries({ queryKey: ['valve-requests'] });

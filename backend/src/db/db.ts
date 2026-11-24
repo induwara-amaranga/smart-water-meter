@@ -100,9 +100,9 @@ class PgliteDb implements Db {
 }
 
 /** Connect to PostgreSQL if a URL is given, otherwise open PGlite (dir, or memory when dir is "memory"). */
-export async function openDb(databaseUrl: string, pgliteDir: string): Promise<Db> {
+export async function openDb(databaseUrl: string, pgliteDir: string, ssl = false): Promise<Db> {
   if (databaseUrl) {
-    const pool = new pg.Pool({ connectionString: databaseUrl, max: 10 });
+    const pool = new pg.Pool({ connectionString: databaseUrl, max: 10, ssl: ssl ? { rejectUnauthorized: false } : undefined });
     await pool.query('select 1');
     return new PgDb(pool, pool);
   }

@@ -1,0 +1,5 @@
+# HTTPS for the API and Socket.IO. Caddy gets and renews a Let's Encrypt
+# certificate for $DOMAIN (port 80 must be open for that).
+{$DOMAIN} {
+  reverse_proxy backend:3000
+}

@@ -9,6 +9,19 @@ import '../data/models.dart';
 import '../data/provisioning.dart';
 import '../data/repository.dart';
 
+// ------------------------------------------------------------------ refresh
+
+/// How often REST-backed metrics re-fetch while watched. Live flow and valve
+/// state come over the socket and are not polled.
+const metricsRefresh = Duration(seconds: 5);
+
+/// Re-fetches the calling provider every [metricsRefresh]. Riverpod keeps the
+/// previous value while refreshing, so screens do not flash a spinner.
+void _autoRefresh(Ref ref) {
+  final timer = Timer(metricsRefresh, ref.invalidateSelf);
+  ref.onDispose(timer.cancel);
+}
+
 // ------------------------------------------------------------------ services
 
 final repositoryProvider = Provider<WaterRepository>(
@@ -76,9 +89,7 @@ final currentAccountProvider = Provider<Account?>((ref) {
 // --------------------------------------------------------------------- meter
 
 final summaryProvider = FutureProvider.family<MeterSummary, String>((ref, meterId) async {
-  // Refresh the summary every 30 s while it is being watched.
-  final timer = Timer(const Duration(seconds: 30), ref.invalidateSelf);
-  ref.onDispose(timer.cancel);
+  _autoRefresh(ref);
   return ref.watch(repositoryProvider).getSummary(meterId);
 });
 
@@ -133,7 +144,10 @@ class ValveController extends Notifier<ValveUiState> {
 final valveProvider = NotifierProvider.autoDispose.family<ValveController, ValveUiState, String>(ValveController.new);
 
 final usageProvider = FutureProvider.autoDispose.family<UsageSeries, (String, UsageRange)>(
-  (ref, args) => ref.watch(repositoryProvider).getUsage(args.$1, args.$2),
+  (ref, args) {
+    _autoRefresh(ref);
+    return ref.watch(repositoryProvider).getUsage(args.$1, args.$2);
+  },
 );
 
 // ------------------------------------------------------------------- billing
@@ -141,20 +155,30 @@ final usageProvider = FutureProvider.autoDispose.family<UsageSeries, (String, Us
 final tariffProvider = FutureProvider<Tariff>((ref) => ref.watch(repositoryProvider).getActiveTariff());
 
 final balanceProvider = FutureProvider.family<Balance, String>(
-  (ref, accountId) => ref.watch(repositoryProvider).getBalance(accountId),
+  (ref, accountId) {
+    _autoRefresh(ref);
+    return ref.watch(repositoryProvider).getBalance(accountId);
+  },
 );
 
 final billsProvider = FutureProvider.family<List<Bill>, String>(
-  (ref, accountId) => ref.watch(repositoryProvider).getBills(accountId),
+  (ref, accountId) {
+    _autoRefresh(ref);
+    return ref.watch(repositoryProvider).getBills(accountId);
+  },
 );
 
 final estimateProvider = FutureProvider.autoDispose.family<Bill, String>(
-  (ref, accountId) => ref.watch(repositoryProvider).getCurrentEstimate(accountId),
+  (ref, accountId) {
+    _autoRefresh(ref);
+    return ref.watch(repositoryProvider).getCurrentEstimate(accountId);
+  },
 );
 
 // -------------------------------------------------------- alerts & settings
 
 final alertsProvider = FutureProvider<List<AppAlert>>((ref) async {
+  _autoRefresh(ref);
   final customer = await ref.watch(authProvider.future);
   if (customer == null) return const [];
   return ref.watch(repositoryProvider).getAlerts();

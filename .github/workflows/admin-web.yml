@@ -50,6 +50,18 @@ jobs:
         with:
           name: admin-web-dist
           path: dist
+      # First run only: create the Pages project if it doesn't exist yet.
+      - name: Create the Pages project if missing
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: |
+          if npx --yes wrangler@3 pages project list | grep -qw "$PROJECT"; then
+            echo "Pages project $PROJECT exists"
+          else
+            npx --yes wrangler@3 pages project create "$PROJECT" --production-branch=main
+          fi
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

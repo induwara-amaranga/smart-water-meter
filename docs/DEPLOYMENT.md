@@ -54,12 +54,7 @@ chmod 600 .env
 
 ### 2. Cloudflare Pages
 
-```bash
-npx wrangler login
-npx wrangler pages project create swm-admin --production-branch=main
-```
-
-Create an API token with *Account → Cloudflare Pages → Edit*. React Router routes work without extra config: Pages serves `index.html` for unknown paths when the site has no `404.html`.
+The workflow creates the Pages project (named by `CLOUDFLARE_PAGES_PROJECT`) on its first run, so you only need an API token: dash.cloudflare.com → My Profile → API Tokens → *Create token* with *Account → Cloudflare Pages → Edit*. Your account ID is on the Workers & Pages overview page. React Router routes work without extra config: Pages serves `index.html` for unknown paths when the site has no `404.html`.
 
 ### 3. GitHub repository settings
 
